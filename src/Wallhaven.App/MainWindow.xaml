@@ -1,0 +1,254 @@
+<Window x:Class="Wallhaven.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:Wallhaven.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+ Title="Wallhaven · 壁纸" Width="1360" Height="850" MinWidth="604" MinHeight="540" Foreground="{DynamicResource TextBrush}" FontFamily="Segoe UI, Microsoft YaHei UI" FontSize="14" WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize" Background="{DynamicResource BaseBrush}" Activated="Window_Activated" Deactivated="Window_Deactivated" Loaded="Window_Loaded" Closing="Window_Closing" PreviewKeyDown="Window_KeyDown" PreviewMouseDown="Window_PreviewMouseDown" SizeChanged="Window_SizeChanged" PreviewMouseMove="Window_MouseMove">
+  <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="32" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0"/></shell:WindowChrome.WindowChrome>
+  <Window.Resources>
+    <DataTemplate x:Key="WallpaperThumbnailTemplate">
+                <Button Height="134" Margin="5" Padding="0" Click="Thumbnail_Click" Tag="{Binding}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" ToolTip="{Binding Wallpaper.Id}" AutomationProperties.Name="{Binding Wallpaper.Id}">
+                  <Grid ClipToBounds="True">
+                    <Border Background="{DynamicResource ControlBrush}" CornerRadius="8"/>
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                    <Border VerticalAlignment="Bottom" Background="{DynamicResource PanelBrush}" Padding="9,7"><DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding FavoriteMark}" Foreground="{DynamicResource AccentTextBrush}" Margin="8,0,0,0"/><TextBlock Text="{Binding Wallpaper.Resolution}" FontSize="11"/></DockPanel></Border>
+                    <TextBlock Text="{Binding ThumbnailError}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                    <Border CornerRadius="8" BorderThickness="3" BorderBrush="{DynamicResource AccentBrush}" IsHitTestVisible="False" Visibility="{Binding IsMarked, Converter={StaticResource BoolVisibility}}"/>
+                    <Border Background="{DynamicResource AccentBrush}" CornerRadius="5" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="7" Padding="6,3" IsHitTestVisible="False" Visibility="{Binding IsMarked, Converter={StaticResource BoolVisibility}}"><TextBlock Text="{Binding MarkerText}" Foreground="{DynamicResource OnAccentBrush}" FontSize="11"/></Border>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+  </Window.Resources>
+  <Window.ContextMenu>
+    <ContextMenu x:Name="WallpaperMenu" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+      <MenuItem StaysOpenOnClick="True" Focusable="False" Padding="4" Height="42">
+        <MenuItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="Settings_Click" ToolTip="设置 (F1)" AutomationProperties.Name="设置"/>
+            <Button Content="&#xE740;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="Fullscreen_Click" ToolTip="全屏 (F11)" AutomationProperties.Name="全屏"/>
+            <Button Content="&#xE896;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="Download_Click" ToolTip="下载原图" AutomationProperties.Name="下载原图" IsEnabled="{Binding CanAct}"/>
+            <Button Content="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="Favorite_Click" ToolTip="{Binding FavoriteLabel}" AutomationProperties.Name="收藏"/>
+            <Button Content="&#xE72D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="CopySource_Click" ToolTip="复制来源链接" AutomationProperties.Name="复制来源链接"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Header="设为桌面背景" InputGestureText="Ctrl+B" Click="SetWallpaper_Click" IsEnabled="{Binding CanAct}"><MenuItem.Icon><TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/></MenuItem.Icon></MenuItem>
+      <MenuItem Header="定位当前桌面壁纸" InputGestureText="Ctrl+L" Click="LocateCurrent_Click"><MenuItem.Icon><TextBlock Text="&#xE81D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/></MenuItem.Icon></MenuItem>
+      <Separator/>
+      <MenuItem Header="自动更换桌面" IsEnabled="False"/>
+      <MenuItem Header="{Binding AutoMenuLabel}" IsCheckable="True" IsChecked="{Binding Settings.AutoChange}" Click="AutoMenu_Click"/>
+      <MenuItem Header="当前桌面与下一张" Click="DesktopStatus_Click"/>
+      <Separator/>
+      <MenuItem Header="切换浏览图源">
+        <MenuItem Header="Wallhaven · 高清壁纸" Click="Browse_Click"/>
+        <MenuItem Header="收藏 · 本地收藏" Click="Favorites_Click"/>
+        <MenuItem Header="账户 · 站内收藏" Click="ApiMenu_Click"/>
+      </MenuItem>
+      <MenuItem Header="浏览缩略图" InputGestureText="B" Click="Browse_Click"/>
+      <MenuItem Header="搜索壁纸" InputGestureText="Ctrl+F" Click="FocusSearch_Click"/>
+      <MenuItem Header="图片操作">
+        <MenuItem Header="上一张" InputGestureText="←" Click="Previous_Click"/>
+        <MenuItem Header="下一张" InputGestureText="→" Click="Next_Click"/>
+        <MenuItem Header="定位当前预览图" Click="LocatePreview_Click"/>
+        <MenuItem Header="打开本地文件位置" Click="OpenFileLocation_Click"/>
+        <MenuItem Header="在 Wallhaven 中查看" Click="Source_Click"/>
+      </MenuItem>
+    </ContextMenu>
+  </Window.ContextMenu>
+  <Grid x:Name="RootGrid" ClipToBounds="True" Background="{DynamicResource BaseBrush}">
+    <Grid x:Name="Backdrop" MouseLeftButtonDown="Backdrop_Click">
+      <Image x:Name="PreviousImage" Stretch="UniformToFill"/>
+      <Image x:Name="WallpaperImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+    </Grid>
+
+    <Grid x:Name="MainContent">
+      <Grid x:Name="WelcomePanel" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40" Visibility="{Binding ShowWelcome, Converter={StaticResource BoolVisibility}}">
+        <StackPanel MaxWidth="500">
+          <TextBlock Text="A WINDOW TO SOMEWHERE" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center"/>
+          <TextBlock Text="让桌面，换个风景。" FontSize="38" FontWeight="Light" Margin="0,18,0,14" TextAlignment="Center"/>
+          <TextBlock Text="来自 Wallhaven 的高清壁纸。浏览、收藏，&#10;把喜欢的一瞬间留在桌面。" Foreground="{DynamicResource MutedBrush}" TextAlignment="Center" FontSize="14" LineHeight="25"/>
+          <Button Content="探索壁纸  ↗" Click="Browse_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Margin="0,26,0,0"/>
+        </StackPanel>
+      </Grid>
+
+      <Border x:Name="InfoCard" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30" Padding="16,12" CornerRadius="14" MaxWidth="640" Background="Transparent" Visibility="{Binding HasWallpaper, Converter={StaticResource BoolVisibility}}">
+        <Grid>
+          <local:BackdropMaterial x:Name="InfoMaterial" Source="{Binding WallpaperBackdrop}" Image="{Binding WallpaperBackdropImage}" Tint="{DynamicResource AcrylicTintBrush}" CornerRadius="14" Margin="-16,-12"/>
+          <StackPanel>
+            <TextBlock x:Name="CurrentTitleText" Text="{Binding Current.Title}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Cursor="Hand" MouseLeftButtonUp="InfoTitle_Click" ToolTip="点击展开图片信息；右键打开操作菜单"/>
+            <ProgressBar Height="3" Margin="0,8,0,0" Foreground="{DynamicResource AccentBrush}" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}"/>
+            <StackPanel x:Name="DetailsPanel" Visibility="Collapsed" Margin="0,8,0,0">
+              <TextBlock Text="{Binding WallpaperMeta}" Foreground="{DynamicResource MutedBrush}" FontSize="12"/>
+              <TextBlock Text="{Binding DetailsText}" Foreground="{DynamicResource MutedBrush}" LineHeight="20" FontSize="12" Margin="0,8,0,0"/>
+              <WrapPanel Margin="0,10,0,0">
+                <Button x:Name="SetDesktopButton" Content="设为桌面" Click="SetWallpaper_Click" IsEnabled="{Binding CanAct}" AutomationProperties.Name="设为桌面" Style="{StaticResource PrimaryButton}"/>
+                <Button Content="{Binding FavoriteLabel}" Click="Favorite_Click" Margin="6,0,0,0"/>
+                <Button Content="定位桌面" Click="LocateCurrent_Click" Margin="6,0,0,0"/>
+              </WrapPanel>
+              <Button Content="打开本地文件位置" Click="OpenFileLocation_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Padding="0,8" IsEnabled="{Binding CanAct}"/>
+              <Button Content="查看图片来源与作者" Click="Source_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Padding="0,4" Foreground="{DynamicResource AccentTextBrush}"/>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <StackPanel x:Name="NavigationPanel" Opacity="0" IsHitTestVisible="False" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,30,30">
+        <Button Content="‹" FontSize="22" Width="36" Height="36" Padding="0" Click="Previous_Click" ToolTip="上一张 (←)" AutomationProperties.Name="上一张"/>
+        <Border Background="{DynamicResource PanelBrush}" CornerRadius="8" Margin="8,0" Padding="14,0"><TextBlock Text="{Binding PositionText}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/></Border>
+        <Button Content="›" FontSize="22" Width="36" Height="36" Padding="0" Click="Next_Click" ToolTip="下一张 (→)" AutomationProperties.Name="下一张"/>
+      </StackPanel>
+    </Grid>
+
+    <Border x:Name="DrawerScrim" Background="#50000000" MouseLeftButtonDown="Scrim_Click" Visibility="Collapsed"/>
+    <Border x:Name="Drawer" Width="462" HorizontalAlignment="Left" Background="Transparent" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" Visibility="Collapsed" Margin="0" LostKeyboardFocus="Drawer_LostKeyboardFocus">
+      <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <local:BackdropMaterial x:Name="DrawerMaterial" Grid.RowSpan="2" Source="{Binding WallpaperBackdrop}" Image="{Binding WallpaperBackdropImage}" Tint="{DynamicResource AcrylicTintBrush}"/>
+        <Grid Margin="27,32,26,30"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <StackPanel><TextBlock x:Name="DrawerTitle" Text="设置" FontSize="40" FontWeight="SemiBold"/><TextBlock x:Name="DrawerSubtitle" Text="Wallhaven · 每日新景" Foreground="{DynamicResource MutedBrush}" FontSize="14" Margin="0,8,0,0"/></StackPanel>
+          <Border Grid.Column="1" VerticalAlignment="Top" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Margin="0,6,0,0">
+            <StackPanel Orientation="Horizontal">
+              <Button Content="&#xE740;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="Fullscreen_Click" ToolTip="全屏模式 (F11)"/>
+              <Button Content="&#xE8A0;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="NarrowWindow_Click" ToolTip="窄屏模式 (F8)"/>
+              <Button Content="&#xE8A1;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Style="{StaticResource FlyoutIconButton}" Click="WideWindow_Click" ToolTip="宽屏模式 (F8)"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+        <ScrollViewer x:Name="SettingsScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="26,0,26,30">
+          <StackPanel>
+            <Expander Header="壁纸来源 · Wallhaven" Tag="&#xE8B9;">
+              <StackPanel Margin="0,14,0,4">
+                <TextBlock Style="{StaticResource Hint}" Text="直接连接 Wallhaven。默认浏览 SFW 内容，连接 API Key 后可使用账户功能。搜索英文关键词通常能找到更多结果。"/>
+                <TextBlock Text="搜索关键词" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="SettingsQuery" Text="{Binding Settings.Query, UpdateSourceTrigger=PropertyChanged}" KeyDown="SearchBox_KeyDown" AutomationProperties.Name="设置搜索关键词"/>
+                <TextBlock Text="排序" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="SortBox" SelectedValuePath="Tag" SelectedValue="{Binding Settings.Sorting}"><ComboBoxItem Content="热门精选" Tag="toplist"/><ComboBoxItem Content="最新上传" Tag="date_added"/><ComboBoxItem Content="随机发现" Tag="random"/><ComboBoxItem Content="最多收藏" Tag="favorites"/><ComboBoxItem Content="最多浏览" Tag="views"/><ComboBoxItem Content="搜索相关度" Tag="relevance"/></ComboBox>
+                <TextBlock Text="热门时间范围" Style="{StaticResource FieldLabel}"/>
+                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding Settings.TopRange}"><ComboBoxItem Content="最近一天" Tag="1d"/><ComboBoxItem Content="最近三天" Tag="3d"/><ComboBoxItem Content="最近一个月" Tag="1M"/><ComboBoxItem Content="最近一周" Tag="1w"/><ComboBoxItem Content="最近三个月" Tag="3M"/><ComboBoxItem Content="最近半年" Tag="6M"/><ComboBoxItem Content="最近一年" Tag="1y"/><ComboBoxItem Content="全部时间" Tag="all"/></ComboBox>
+                <TextBlock Text="分类（可多选）" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel><CheckBox x:Name="GeneralCheck" Content="综合"/><CheckBox x:Name="AnimeCheck" Content="动漫"/><CheckBox x:Name="PeopleCheck" Content="人物"/></WrapPanel>
+                <TextBlock Text="内容级别（可多选）" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel><CheckBox x:Name="SfwCheck" Content="SFW" ToolTip="适合公开场合"/><CheckBox x:Name="SketchyCheck" Content="Sketchy" ToolTip="可能含敏感内容"/><CheckBox x:Name="NsfwCheck" Content="NSFW" ToolTip="需要有效 API Key 与站点授权"/></WrapPanel>
+                <TextBlock Text="最低分辨率" Style="{StaticResource FieldLabel}"/>
+                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding Settings.AtLeast}"><ComboBoxItem Content="不限" Tag=""/><ComboBoxItem Content="Full HD · 1920 × 1080" Tag="1920x1080"/><ComboBoxItem Content="2K · 2560 × 1440" Tag="2560x1440"/><ComboBoxItem Content="4K · 3840 × 2160" Tag="3840x2160"/></ComboBox>
+                <TextBlock Text="画面比例" Style="{StaticResource FieldLabel}"/>
+                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding Settings.Ratios}"><ComboBoxItem Content="不限" Tag=""/><ComboBoxItem Content="横屏 · 16:9" Tag="16x9"/><ComboBoxItem Content="宽屏 · 21:9" Tag="21x9"/><ComboBoxItem Content="竖屏 · 9:16" Tag="9x16"/><ComboBoxItem Content="方形 · 1:1" Tag="1x1"/></ComboBox>
+                <Button Content="应用筛选并浏览 →" Click="ApplyFilters_Click" Style="{StaticResource PrimaryButton}" Margin="0,20,0,0" IsEnabled="{Binding CanSearch}"/>
+              </StackPanel>
+            </Expander>
+            <Expander x:Name="ApiExpander" Header="账户与 API Key" Tag="&#xE77B;">
+              <StackPanel Margin="0,14,0,4">
+                <TextBlock Style="{StaticResource Hint}" Text="API Key 用于读取账户偏好与站内收藏，并访问账户允许的内容。密钥使用当前 Windows 账户加密保存在本机。"/>
+                <Button Content="打开 Wallhaven 账户设置 ↗" Click="ApiSettingsPage_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBlock Text="API Key" Style="{StaticResource FieldLabel}"/>
+                <PasswordBox x:Name="ApiKeyBox" Padding="10,9" Foreground="{DynamicResource TextBrush}" Background="{DynamicResource InputBrush}" BorderBrush="{DynamicResource BorderBrush}" CaretBrush="{DynamicResource AccentBrush}" AutomationProperties.Name="Wallhaven API Key"/>
+                <TextBlock Text="留空可验证已保存的密钥。" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                <WrapPanel Margin="0,10,0,0"><Button Content="验证并保存" Click="ConnectApi_Click" Style="{StaticResource PrimaryButton}" IsEnabled="{Binding CanUseApi}"/><Button Content="移除密钥" Click="ClearApi_Click" Margin="8,0,0,0" IsEnabled="{Binding CanUseApi}"/></WrapPanel>
+                <TextBlock Text="{Binding ApiStatus}" Style="{StaticResource Hint}" Margin="0,10,0,0"/>
+                <Button Content="导入账户筛选偏好" Click="ImportPreferences_Click" Margin="0,16,0,0" IsEnabled="{Binding CanUseApi}"/>
+                <TextBlock Text="站内收藏" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="填写你的 Wallhaven 用户名，用于打开收藏夹。站点收藏以只读方式浏览，应用内的收藏按钮仍保存在本机。" Style="{StaticResource Hint}"/>
+                <TextBox Text="{Binding Settings.WallhavenUsername, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0" AutomationProperties.Name="Wallhaven 用户名"/>
+                <Button Content="读取我的收藏夹" Click="ReadCollections_Click" Margin="0,10,0,0" IsEnabled="{Binding CanUseApi}"/>
+                <ComboBox x:Name="CollectionsBox" ItemsSource="{Binding SiteCollections}" DisplayMemberPath="DisplayLabel" Margin="0,10,0,0"/>
+                <Button Content="浏览所选收藏夹 →" Click="OpenCollection_Click" Margin="0,10,0,0" IsEnabled="{Binding CanUseApi}"/>
+              </StackPanel>
+            </Expander>
+            <Expander Header="自动更换桌面" Tag="&#xE895;">
+              <StackPanel Margin="0,14,0,4">
+                <CheckBox x:Name="AutoCheck" Content="启用定时更换" IsChecked="{Binding Settings.AutoChange}"/>
+                <TextBlock Text="更换频率" Style="{StaticResource FieldLabel}"/>
+                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding Settings.IntervalMinutes}"><ComboBoxItem Content="每 15 分钟" Tag="15"/><ComboBoxItem Content="每 30 分钟" Tag="30"/><ComboBoxItem Content="每小时" Tag="60"/><ComboBoxItem Content="每 3 小时" Tag="180"/><ComboBoxItem Content="每天" Tag="1440"/></ComboBox>
+                <TextBlock Text="使用当前搜索条件随机挑选壁纸。应用驻留托盘时继续运行，完全退出后停止。" Style="{StaticResource Hint}" Margin="0,12,0,0"/>
+                <TextBlock Text="{Binding ScheduleText}" Foreground="{DynamicResource AccentTextBrush}" Margin="0,10,0,0"/>
+              </StackPanel>
+            </Expander>
+            <Expander Header="显示与窗口" Tag="&#xE790;">
+              <StackPanel Margin="0,10,0,4">
+                <TextBlock Text="应用主题" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="ThemeBox" SelectedValuePath="Tag" SelectedValue="{Binding Settings.Theme}" SelectionChanged="Theme_Changed"><ComboBoxItem Content="跟随系统" Tag="system"/><ComboBoxItem Content="浅色" Tag="light"/><ComboBoxItem Content="深色" Tag="dark"/></ComboBox>
+                <CheckBox x:Name="FillCheck" Content="填满画面（可能裁剪边缘）" IsChecked="{Binding Settings.Fill}"/>
+                <CheckBox Content="关闭窗口时留在系统托盘" IsChecked="{Binding Settings.CloseToTray}"/>
+                <CheckBox x:Name="StartupCheck" Content="开机启动（登录后进入托盘）"/>
+                <TextBlock Text="勾选后点击“保存设置”生效。移动应用后，请重新启用开机启动。" Style="{StaticResource Hint}"/>
+                <Button Content="切换全屏  F11" Click="Fullscreen_Click" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+              </StackPanel>
+            </Expander>
+            <Expander Header="本地数据与帮助" Tag="&#xE8B7;">
+              <StackPanel Margin="0,14,0,4">
+                <TextBlock Text="收藏、设置与壁纸缓存默认保存在程序所在目录。收藏原图在首次查看时下载，下载目录可通过保存对话框选择。" Style="{StaticResource Hint}"/>
+                <Button Content="打开数据目录 ↗" Click="DataFolder_Click" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+                <TextBlock Text="← / → 切换壁纸　F 收藏&#10;Ctrl+S 下载　Ctrl+D 设置桌面&#10;B 浏览　F11 全屏　Esc 返回&#10;右键打开更多操作" Style="{StaticResource Hint}" Margin="0,16,0,0"/>
+                <TextBlock Text="Wallhaven Desktop  1.0.5&#10;图片版权归各自权利人所有。" Style="{StaticResource Hint}" Margin="0,16,0,0"/>
+              </StackPanel>
+            </Expander>
+            <Button Content="保存设置" Click="SaveSettings_Click" Margin="0,16,0,0"/>
+          </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer x:Name="DesktopPanel" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Padding="26,0,26,30">
+          <StackPanel>
+            <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="9" Padding="14" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Windows 当前桌面" FontSize="17" FontWeight="SemiBold"/>
+                <Image Source="{Binding DesktopThumbnail}" Height="110" Stretch="UniformToFill" Margin="0,12,0,10"/>
+                <TextBlock Text="{Binding DesktopDescription}" TextWrapping="Wrap"/>
+                <Button Content="在 App 中定位当前桌面" Click="LocateCurrent_Click" Style="{StaticResource PrimaryButton}" Margin="0,12,0,0"/>
+              </StackPanel>
+            </Border>
+            <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="9" Padding="14">
+              <StackPanel>
+                <TextBlock Text="下一张自动切换" FontSize="17" FontWeight="SemiBold"/>
+                <Image Source="{Binding NextDesktopThumbnail}" Height="140" Stretch="UniformToFill" Margin="0,12,0,10"/>
+                <TextBlock Text="{Binding NextDesktopDescription}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding NextDesktopDetails}" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                <TextBlock Text="{Binding ScheduleText}" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                <TextBlock Text="这张图将用于下一次自动切换。预览不会改变桌面；更改筛选后会重新准备。" Style="{StaticResource Hint}" Margin="0,10,0,0"/>
+                <WrapPanel Margin="0,12,0,0">
+                  <Button Content="准备 / 预览下一张" Click="PreviewNextDesktop_Click" IsEnabled="{Binding CanSwitchDesktop}"/>
+                  <Button Content="立即切换" Click="SwitchNextDesktop_Click" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" IsEnabled="{Binding CanSwitchDesktop}"/>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+        <Grid x:Name="GalleryPanel" Grid.Row="1" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <StackPanel Margin="26,0,26,16">
+            <Grid x:Name="GallerySearchRegion" Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" KeyDown="SearchBox_KeyDown" ToolTip="搜索壁纸关键词" AutomationProperties.Name="搜索壁纸"/>
+              <Button Grid.Column="1" Content="搜索" Click="Search_Click" Margin="6,0,0,0" IsEnabled="{Binding CanSearch}"/>
+            </Grid>
+            <TextBlock Text="{Binding GallerySummary}" Style="{StaticResource Hint}"/>
+          </StackPanel>
+          <ScrollViewer x:Name="GalleryScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20,0,20,10" ScrollChanged="GalleryScroll_Changed" PreviewMouseWheel="GalleryScroll_MouseWheel" PreviewMouseDown="GalleryScroll_MouseDown" PreviewKeyDown="GalleryScroll_KeyDown">
+            <StackPanel>
+              <StackPanel Visibility="{Binding HasPinnedWallpaper, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,12">
+                <TextBlock Text="当前壁纸（不在当前列表中）" Style="{StaticResource Hint}" Margin="5,0,5,8"/>
+                <ItemsControl ItemsSource="{Binding PinnedItems}" ItemTemplate="{StaticResource WallpaperThumbnailTemplate}" Width="196" HorizontalAlignment="Left"/>
+              </StackPanel>
+            <ItemsControl x:Name="GalleryItems" ItemsSource="{Binding Items}" ItemTemplate="{StaticResource WallpaperThumbnailTemplate}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:VirtualizingTilePanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+
+            </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+          <Button Grid.Row="2" Content="{Binding LoadMoreLabel}" Click="LoadMore_Click" Margin="26,12,26,24" IsEnabled="{Binding CanLoadMore}"/>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border x:Name="TopBar" VerticalAlignment="Top" Height="32" Background="Transparent">
+      <StackPanel x:Name="TitleActions" Orientation="Horizontal" HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+        <Button Content="&#xE921;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Click="Minimize_Click" Style="{StaticResource CaptionButton}" AutomationProperties.Name="最小化"/>
+        <Button Content="&#xE922;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Click="Maximize_Click" Style="{StaticResource CaptionButton}" AutomationProperties.Name="最大化"/>
+        <Button x:Name="CloseWindowButton" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Click="Close_Click" Style="{StaticResource CaptionCloseButton}" AutomationProperties.Name="关闭窗口"/>
+      </StackPanel>
+    </Border>
+
+    <Border x:Name="StatusBanner" Background="{DynamicResource PopupBrush}" CornerRadius="10" BorderThickness="1" BorderBrush="{DynamicResource ControlHoverBrush}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="29,44,29,0" MaxWidth="650" Padding="16,12" Visibility="{Binding HasStatus, Converter={StaticResource BoolVisibility}}">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <Button Grid.Column="1" Content="×" Click="DismissStatus_Click" Style="{StaticResource GhostButton}" Padding="4,0" AutomationProperties.Name="关闭提示"/>
+      </Grid>
+    </Border>
+    <Border Background="{DynamicResource PopupBrush}" CornerRadius="12" Padding="18,13" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}">
+      <StackPanel Width="230"><TextBlock Text="{Binding BusyText}" HorizontalAlignment="Center"/><ProgressBar Height="3" Margin="0,12,0,0" IsIndeterminate="True" Foreground="{DynamicResource AccentTextBrush}" Background="{DynamicResource ControlBrush}"/></StackPanel>
+    </Border>
+  </Grid>
+</Window>
