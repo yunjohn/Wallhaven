@@ -39,6 +39,9 @@ public sealed class VirtualizingTilePanel : VirtualizingPanel
     }
     protected override Size MeasureOverride(Size availableSize)
     {
+        // Accessing InternalChildren connects a new items host to its generator.
+        // On first measure after a template rebuild, ItemContainerGenerator can still be null.
+        var children = InternalChildren;
         var owner = ItemsControl.GetItemsOwner(this);
         int count = owner?.Items.Count ?? 0;
         double width = double.IsInfinity(availableSize.Width) ? scroll?.ViewportWidth ?? 400 : availableSize.Width;
@@ -47,8 +50,9 @@ public sealed class VirtualizingTilePanel : VirtualizingPanel
         int first = Math.Min(Math.Max(0, count - 1) / 2, Math.Max(0, (int)(offset / RowHeight) - 1)) * 2;
         int last = Math.Min(count - 1, ((int)Math.Ceiling((offset + viewport) / RowHeight) + 1) * 2 + 1);
         var generator = ItemContainerGenerator;
+        if (owner == null || generator == null) return new Size(width, 0);
         // Release offscreen controls before creating the new viewport.
-        for (int i = InternalChildren.Count - 1; i >= 0; i--)
+        for (int i = children.Count - 1; i >= 0; i--)
         {
             var position = new GeneratorPosition(i, 0);
             int item = generator.IndexFromGeneratorPosition(position);
@@ -64,7 +68,7 @@ public sealed class VirtualizingTilePanel : VirtualizingPanel
             {
                 for (int index = first; index <= last; index++, childIndex++)
                 {
-                    var child = (UIElement)generator.GenerateNext(out bool created);
+                    if (generator.GenerateNext(out bool created) is not UIElement child) break;
                     if (created)
                     {
                         InsertInternalChild(childIndex, child);
@@ -78,17 +82,21 @@ public sealed class VirtualizingTilePanel : VirtualizingPanel
     }
     protected override Size ArrangeOverride(Size finalSize)
     {
-        for (int i = 0; i < InternalChildren.Count; i++)
+        var children = InternalChildren;
+        var generator = ItemContainerGenerator;
+        if (generator == null) return finalSize;
+        for (int i = 0; i < children.Count; i++)
         {
-            int index = ItemContainerGenerator.IndexFromGeneratorPosition(new GeneratorPosition(i, 0));
-            InternalChildren[i].Arrange(new Rect(index % 2 * finalSize.Width / 2, index / 2 * RowHeight, finalSize.Width / 2, RowHeight));
+            int index = generator.IndexFromGeneratorPosition(new GeneratorPosition(i, 0));
+            if (index >= 0) children[i].Arrange(new Rect(index % 2 * finalSize.Width / 2, index / 2 * RowHeight, finalSize.Width / 2, RowHeight));
         }
         return finalSize;
     }
     protected override void OnItemsChanged(object sender, ItemsChangedEventArgs args)
     {
         base.OnItemsChanged(sender, args);
-        ItemContainerGenerator.RemoveAll();
+        _ = InternalChildren;
+        ItemContainerGenerator?.RemoveAll();
         if (InternalChildren.Count > 0) RemoveInternalChildRange(0, InternalChildren.Count);
         InvalidateMeasure();
     }

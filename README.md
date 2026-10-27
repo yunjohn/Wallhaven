@@ -6,6 +6,8 @@ Windows 10/11 x64 壁纸应用，以 Wallhaven 为图片源。C# / WPF / .NET 10
 
 ## 使用
 
+可从 [GitHub Releases](https://github.com/yunjohn/Wallhaven/releases/latest) 下载最新 Windows x64 程序。
+
 发布包运行 `dist/Wallhaven.exe`，详见[使用说明](USER-GUIDE.md)。首次联网拉取真实图片；支持关键词搜索、筛选、分页、随机 seed、原图缓存、下载、收藏、桌面设置、定时随机更换、系统托盘、可选开机启动、快捷键、上次壁纸恢复和单实例唤醒。
 
 设置、收藏和壁纸数据默认保存在程序所在目录，旧版 LocalAppData 数据首次自动复制，详见使用说明。默认使用公开 SFW 接口，无需账户。可填写 API Key 访问账户偏好、站内收藏（含私有收藏）及账户允许的内容；密钥由 Windows DPAPI 加密保存，请求仅使用 X-API-Key 头。站内收藏只读，本地收藏不上传。自动切换要求进程运行；设置壁纸使用 Windows `SystemParametersInfoW`。不包含锁屏设置、Store 上架、双向账户同步或后台系统服务。
@@ -17,6 +19,7 @@ Windows 10/11 x64 壁纸应用，以 Wallhaven 为图片源。C# / WPF / .NET 10
 ```powershell
 dotnet run --project src/Wallhaven.App
 dotnet run --project tests/Wallhaven.Tests
+dotnet run --project tests/Wallhaven.UiTests
 dotnet run --project tests/Wallhaven.Tests -- --live
 ./build.ps1 -LiveTests
 ```
@@ -36,6 +39,7 @@ dotnet run --project tests/Wallhaven.Tests -- --live
 - `src/Wallhaven.Core`：API、查询参数、下载与验证、原图缓存、本地存储、可测试调度器。
 - `src/Wallhaven.App`：WPF 界面、桌面适配、托盘、窗口与键盘交互。
 - `tests/Wallhaven.Tests`：无测试框架依赖的检查程序；`--live` 额外访问真实 API 并下载图片。
+- `tests/Wallhaven.UiTests`：独立 WPF 布局与列表生命周期回归检查，不访问网络、不修改用户数据。
 - `artifacts/qa`：应用自身 WPF 渲染截图与诊断结果。
 - [UI 研究报告](analysis/shiguang/REPORT.md)、[提取控件索引](analysis/shiguang/INDEX.md)。
 

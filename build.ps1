@@ -7,6 +7,8 @@ try {
     if ($LiveTests) { dotnet run --project tests/Wallhaven.Tests -c Release --no-build -- --live }
     else { dotnet run --project tests/Wallhaven.Tests -c Release --no-build }
     if ($LASTEXITCODE -ne 0) { throw 'Checks failed' }
+    dotnet run --project tests/Wallhaven.UiTests -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'WPF UI checks failed' }
     dotnet publish src/Wallhaven.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/publish
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
     New-Item -ItemType Directory -Force -Path dist | Out-Null

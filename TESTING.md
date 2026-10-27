@@ -101,3 +101,11 @@ Release 构建为 0 警告、0 错误，101 项离线检查全部通过。新增
 性能探针针对同一张 3,728,435 字节的 PNG，在旧版和优化版分别运行 7 次校验与预览解码。旧版后 6 次中位数 36.0445 ms，优化版 0.0457 ms；首轮分别为 169.3016 ms、133.2736 ms，受 JIT 与文件系统缓存影响，不作为稳定的冷启动提升。探针不包含网络等待、布局、GPU 合成和显示器呈现，不能据此宣称整窗帧率或与拾光的同机性能差距。
 
 探针代码在 tools/PerformanceProbe；原始测量输出在 artifacts/performance-probe/baseline.json 与 optimized.json。运行方式：dotnet run --project tools/PerformanceProbe -c Release -- optimized <应用DLL> <本地图片> <输出JSON>。baseline 模式需要保留的 1.0.8 DLL。发布包为 dist/Wallhaven-1.1.0-win-x64.zip。
+
+## 1.1.1 筛选空引用修复（2026-10-27）
+
+根据实际错误日志，异常位于 VirtualizingTilePanel.MeasureOverride 访问 generator.GeneratorPositionFromIndex。独立 WPF 测试在旧代码上使用预先填充的 1000 条记录创建列表窗口，首次 Show 时即稳定触发相同的 NullReferenceException。根因是首次访问 InternalChildren 之前，ItemContainerGenerator 尚未连接；原诊断先显示空列表，未覆盖此初始化顺序。
+
+修复为在缓存生成器引用之前初始化内部子控件集合，并处理未连接、脱离列表和集合变动时的状态。新增 tests/Wallhaven.UiTests，验证预填充列表首次显示、0/24/500 条结果切换、从底部滚动位置替换、隐藏后显示、模板重建及清空集合，共 25 项检查。旧代码复现失败，修复代码全部通过；解决方案和 build.ps1 已纳入该检查程序，今后的发布必须通过。
+
+Release 构建为 0 警告、0 错误，101 项原有检查与 25 项 WPF 检查通过。完整应用诊断 artifacts/qa-1.1.1/results.json 的 status 为 complete，所有布尔检查通过；诊断保持独立数据目录，未修改用户桌面。发布包版本为 1.1.1。
