@@ -225,10 +225,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         SetupTray();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += SystemThemeChanged;
     }
+    public void StartInTray()
+    {
+        ShowActivated = false;
+        // The tray already exists. Do not show a native window just to hide it in Loaded.
+        _ = InitializeAsync();
+    }
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        initialized = true;
         UpdateLayoutMode();
+        await InitializeAsync();
+    }
+    private async Task InitializeAsync()
+    {
+        if (initialized) return;
+        initialized = true;
+        // Let the first frame and window commands run before starting image/network work.
+        await System.Windows.Threading.Dispatcher.Yield(DispatcherPriority.Background);
+        if (lifetime.IsCancellationRequested) return;
         if (store.LoadWarning != null) Notify(store.LoadWarning, true);
         await GuardAsync(async () =>
         {

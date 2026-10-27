@@ -29,12 +29,9 @@ public partial class App : Application
         wait = ThreadPool.RegisterWaitForSingleObject(wake, (_, _) => Dispatcher.BeginInvoke(window.RestoreWindow), null, -1, false);
         if (startInTray)
         {
-            window.ShowActivated = false;
-            RoutedEventHandler? hideOnLoad = null;
-            hideOnLoad = (_, _) => { window.Loaded -= hideOnLoad; window.Hide(); };
-            window.Loaded += hideOnLoad;
+            window.StartInTray();
         }
-        window.Show();
+        else window.Show();
     }
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
